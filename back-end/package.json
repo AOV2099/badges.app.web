@@ -1,0 +1,25 @@
+{
+  "name": "badges",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js",
+    "dev:badges": "PORT=3001 BASE_URL=http://localhost:3001 nodemon src/index.js",
+    "start:badges": "PORT=3001 BASE_URL=http://localhost:3001 node src/index.js",
+    "start": "node src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "jose": "^6.2.3",
+    "uuid": "^14.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

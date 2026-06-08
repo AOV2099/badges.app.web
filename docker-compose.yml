@@ -1,0 +1,35 @@
+services:
+  backend:
+    build:
+      context: ./back-end
+    container_name: badges-backend
+    environment:
+      PORT: 3001
+      BASE_URL: ${BACKEND_PUBLIC_URL:-http://localhost:3001}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      BADGE_SIGNING_SECRET: ${BADGE_SIGNING_SECRET:-change-me-in-portainer}
+      BADGE_VALIDITY_DAYS: ${BADGE_VALIDITY_DAYS:-365}
+      BADGES_DATA_PATH: /app/data/issued-badges.json
+      ACHIEVEMENTS_DATA_PATH: /app/data/achievements.json
+    volumes:
+      - badges_data:/app/data
+    ports:
+      - "${BACKEND_PORT:-3001}:3001"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./front-end
+      args:
+        VITE_API_BASE_URL: /api
+    container_name: badges-frontend
+    environment:
+      API_BASE_URL: ${FRONTEND_API_BASE_URL:-/api}
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  badges_data:

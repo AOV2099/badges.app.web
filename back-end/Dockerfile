@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY src ./src
+COPY public ./public
+
+ENV NODE_ENV=production
+ENV PORT=3001
+ENV BASE_URL=http://localhost:3001
+
+EXPOSE 3001
+
+CMD ["npm", "start"]
