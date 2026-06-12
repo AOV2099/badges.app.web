@@ -77,7 +77,7 @@
     <div class="mt-5 space-y-3">
       <Button className="w-full justify-start" on:click={() => onNavigate("issue")}>✦ Emitir nueva badge</Button>
       <Button className="w-full justify-start" variant="outline" on:click={() => onNavigate("achievements")}>▣ Crear achievement</Button>
-      <Button className="w-full justify-start" variant="outline" on:click={() => onNavigate("certificate")}>▤ Ver diploma público</Button>
+      <Button className="w-full justify-start" variant="outline" on:click={() => onNavigate("badges")}>▤ Ver diplomas emitidos</Button>
       <Button className="w-full justify-start" variant="outline" on:click={() => onNavigate("activity")}>◌ Actividad reciente</Button>
     </div>
     <div class="mt-6 rounded-2xl bg-slate-900 p-4 font-mono text-xs text-slate-200">

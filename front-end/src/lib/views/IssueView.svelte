@@ -19,13 +19,33 @@
   export let onCopy = () => {};
 
   $: selectedAchievement = achievements.find((achievement) => getSlugFromUrl(achievement.id) === issueForm.achievementId);
+  $: previewValidUntil = selectedAchievement?.validityPreset === "none"
+    ? null
+    : new Date(
+        Date.now() +
+          (selectedAchievement?.validityPreset === "6m"
+            ? 182
+            : selectedAchievement?.validityPreset === "3y"
+              ? 1095
+              : 365) *
+            24 *
+            60 *
+            60 *
+            1000
+      ).toISOString();
   $: syntheticBadge = previewBadge || {
     id: "preview",
     status: "preview",
     jwt: "preview.jwt.openbadge",
+    autoRevocation: selectedAchievement?.validityPreset !== "none",
+    revocable: selectedAchievement?.revocable !== false,
     credential: {
       validFrom: new Date().toISOString(),
-      validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      validUntil: previewValidUntil,
+      credentialStatus: {
+        revocable: selectedAchievement?.revocable !== false,
+        autoRevocation: selectedAchievement?.validityPreset !== "none"
+      },
       issuer: {
         name: "Aragón Academia Local de Pruebas"
       },
@@ -84,7 +104,7 @@
             <p class="text-sm text-slate-500">{selectedAchievement.description}</p>
             <p class="mt-1 text-xs font-semibold text-slate-500">
               {selectedAchievement.revocable === false ? "No revocable" : "Revocable"}
-              {selectedAchievement.validUntil ? ` · Expira ${selectedAchievement.validUntil.slice(0, 10)}` : " · Vigencia global"}
+              · {selectedAchievement.validityPreset === "none" ? "Sin auto-revocación" : selectedAchievement.validityPreset === "6m" ? "6 meses" : selectedAchievement.validityPreset === "3y" ? "3 años" : "1 año"}
             </p>
           </div>
         </div>

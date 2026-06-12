@@ -14,6 +14,7 @@
   $: credential = badge?.credential;
   $: badgeImage = achievement?.image?.id;
   $: revocable = badge?.revocable !== false && credential?.credentialStatus?.revocable !== false && achievement?.revocable !== false;
+  $: autoRevocation = badge?.autoRevocation !== false && credential?.credentialStatus?.autoRevocation !== false && achievement?.validityPreset !== "none";
 </script>
 
 <Card className="overflow-hidden p-0">
@@ -27,6 +28,7 @@
         <div class="flex flex-wrap gap-2">
           <Badge variant={badge.status === "revoked" ? "destructive" : "default"}>{badge.status}</Badge>
           <Badge variant={revocable ? "secondary" : "warning"}>{revocable ? "Revocable" : "No revocable"}</Badge>
+          <Badge variant={autoRevocation ? "secondary" : "warning"}>{autoRevocation ? "Con expiración" : "Sin auto-revocación"}</Badge>
         </div>
       </div>
     </div>
@@ -69,12 +71,13 @@
             </div>
             <div class="rounded-2xl bg-white/80 p-4 text-left shadow-sm">
               <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Válido hasta</p>
-              <p class="mt-1 font-bold text-slate-950">{formatDate(credential?.validUntil)}</p>
+              <p class="mt-1 font-bold text-slate-950">{credential?.validUntil ? formatDate(credential.validUntil) : "Sin auto-revocación"}</p>
             </div>
           </div>
 
           <p class="mt-5 text-xs font-semibold uppercase tracking-wide text-slate-500">
             Política: {revocable ? "revocación manual permitida" : "revocación manual deshabilitada"}
+            · {autoRevocation ? "expiración automática activa" : "sin expiración automática"}
           </p>
 
           <div class="mt-8 flex flex-col items-center gap-4 md:flex-row md:justify-between">

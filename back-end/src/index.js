@@ -93,7 +93,13 @@ function normalizeAchievementPayload(body, id) {
   const criteriaNarrative = String(body.criteriaNarrative || body.criteria?.narrative || "").trim();
   const imageId = String(body.imageId || body.image?.id || `${BASE_URL}/images/node-badge.svg`).trim();
   const revocable = body.revocable === undefined ? true : Boolean(body.revocable);
-  const validUntil = body.validUntil ? new Date(body.validUntil) : null;
+  const validityPreset = String(body.validityPreset || (body.validUntil ? "custom" : "1y"));
+  const validUntil = body.validUntil && validityPreset === "custom" ? new Date(body.validUntil) : null;
+  const validityMonthsByPreset = {
+    "6m": 6,
+    "1y": 12,
+    "3y": 36
+  };
 
   if (!achievementId || !name || !description || !criteriaNarrative) {
     return {
@@ -107,7 +113,13 @@ function normalizeAchievementPayload(body, id) {
     };
   }
 
-  if (validUntil && Number.isNaN(validUntil.getTime())) {
+  if (!["6m", "1y", "3y", "none", "custom"].includes(validityPreset)) {
+    return {
+      error: "validityPreset must be one of 6m, 1y, 3y, none or custom"
+    };
+  }
+
+  if (validityPreset === "custom" && (!validUntil || Number.isNaN(validUntil.getTime()))) {
     return {
       error: "validUntil must be a valid date"
     };
@@ -128,6 +140,9 @@ function normalizeAchievementPayload(body, id) {
         type: "Image"
       },
       revocable,
+      validityPreset,
+      validityMonths: validityMonthsByPreset[validityPreset] || null,
+      autoRevocation: validityPreset !== "none",
       validUntil: validUntil ? validUntil.toISOString() : null
     }
   };
@@ -137,6 +152,50 @@ function addDays(date, days) {
   const result = new Date(date);
   result.setDate(result.getDate() + days);
   return result;
+}
+
+function addMonths(date, months) {
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
+}
+
+function resolveValidUntil(achievement, issuedAt) {
+  if (achievement.validityPreset === "none") return null;
+  if (achievement.validityMonths) return addMonths(issuedAt, achievement.validityMonths);
+  if (achievement.validUntil) return new Date(achievement.validUntil);
+  return addDays(issuedAt, DEFAULT_VALIDITY_DAYS);
+}
+
+async function buildPublicBadgeResponse(badge) {
+  let verification;
+
+  try {
+    const payload = await verifyCredentialJwt(badge.jwt);
+    verification = verifyIssuedBadge(payload, readIssuedBadges());
+  } catch (error) {
+    verification = {
+      valid: false,
+      status: "invalid",
+      checks: {
+        signature: false
+      },
+      error: error.message
+    };
+  }
+
+  return {
+    id: badge.id,
+    credential: badge.credential,
+    status: badge.status,
+    revocable: badge.revocable,
+    autoRevocation: badge.autoRevocation,
+    issuedAt: badge.issuedAt,
+    revokedAt: badge.revokedAt,
+    revokedReason: badge.status === "revoked" ? badge.revokedReason : null,
+    verification,
+    jwtUrl: `${BASE_URL}/badges/${badge.id}/jwt`
+  };
 }
 
 app.get("/", (req, res) => {
@@ -153,6 +212,7 @@ app.get("/", (req, res) => {
       "GET /badges",
       "GET /badges/:id",
       "GET /badges/:id/jwt",
+      "GET /public/badges/:id",
       "POST /badges/:id/revoke",
       "DELETE /badges/:id",
       "POST /badges/verify",
@@ -204,6 +264,16 @@ app.put("/achievements/:id", (req, res) => {
     return res.status(404).json({ error: "Achievement not found" });
   }
 
+  const hasIssuedBadges = readIssuedBadges().some(
+    (badge) => badge.credential?.credentialSubject?.achievement?.id === achievementMap[req.params.id].id
+  );
+
+  if (hasIssuedBadges) {
+    return res.status(409).json({
+      error: "Achievement has issued badges and cannot be edited"
+    });
+  }
+
   const result = normalizeAchievementPayload(req.body, req.params.id);
 
   if (result.error) {
@@ -253,8 +323,9 @@ app.post("/badges/issue", async (req, res) => {
   const achievement = readAchievements()[achievementId];
   const badgeId = uuidv4();
   const issuedAt = new Date();
-  const validUntil = achievement.validUntil ? new Date(achievement.validUntil) : addDays(issuedAt, DEFAULT_VALIDITY_DAYS);
+  const validUntil = resolveValidUntil(achievement, issuedAt);
   const revocable = achievement.revocable !== false;
+  const autoRevocation = achievement.validityPreset !== "none";
 
   const credential = {
     "@context": [
@@ -265,12 +336,12 @@ app.post("/badges/issue", async (req, res) => {
     type: ["VerifiableCredential", "OpenBadgeCredential"],
     issuer,
     validFrom: issuedAt.toISOString(),
-    validUntil: validUntil.toISOString(),
     credentialStatus: {
       id: `${BASE_URL}/badges/${badgeId}`,
       type: "CredentialStatus",
       status: "active",
-      revocable
+      revocable,
+      autoRevocation
     },
     credentialSubject: {
       id: `mailto:${normalizeEmail(recipientEmail)}`,
@@ -280,6 +351,10 @@ app.post("/badges/issue", async (req, res) => {
     }
   };
 
+  if (validUntil) {
+    credential.validUntil = validUntil.toISOString();
+  }
+
   const jwt = await signCredential(credential);
 
   const issuedBadge = {
@@ -288,6 +363,7 @@ app.post("/badges/issue", async (req, res) => {
     jwt,
     status: "active",
     revocable,
+    autoRevocation,
     issuedAt: issuedAt.toISOString(),
     revokedAt: null,
     revokedReason: null
@@ -306,6 +382,17 @@ app.post("/badges/issue", async (req, res) => {
 
 app.get("/badges", (req, res) => {
   res.json(readIssuedBadges());
+});
+
+app.get("/public/badges/:id", async (req, res) => {
+  const badge = getBadgeById(req.params.id);
+
+  if (!badge) {
+    return res.status(404).json({ error: "Badge not found" });
+  }
+
+  res.set("Cache-Control", "no-store");
+  res.json(await buildPublicBadgeResponse(badge));
 });
 
 app.get("/badges/:id", (req, res) => {

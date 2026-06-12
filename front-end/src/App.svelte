@@ -6,9 +6,9 @@
   import AchievementsView from "$lib/views/AchievementsView.svelte";
   import ActivityView from "$lib/views/ActivityView.svelte";
   import BadgesView from "$lib/views/BadgesView.svelte";
-  import CertificateView from "$lib/views/CertificateView.svelte";
   import DashboardView from "$lib/views/DashboardView.svelte";
   import IssueView from "$lib/views/IssueView.svelte";
+  import PublicBadgeView from "$lib/views/PublicBadgeView.svelte";
   import SettingsView from "$lib/views/SettingsView.svelte";
   import VerifierView from "$lib/views/VerifierView.svelte";
 
@@ -19,14 +19,21 @@
     criteriaNarrative: "",
     imageId: "",
     validUntil: "",
+    validityPreset: "1y",
     revocable: true
   });
+
+  const achievementValidityPresets = ["6m", "1y", "3y", "none"];
+
+  function getPublicBadgeIdFromPath() {
+    const publicBadgeMatch = globalThis.window?.location?.pathname.match(/^\/badge\/([^/?#]+)/);
+    return publicBadgeMatch ? decodeURIComponent(publicBadgeMatch[1]) : "";
+  }
 
   const navigationItems = [
     { id: "dashboard", label: "Dashboard", icon: "◆" },
     { id: "badges", label: "Badges", icon: "◈" },
     { id: "issue", label: "Emitir", icon: "✦" },
-    { id: "certificate", label: "Diploma", icon: "▤" },
     { id: "activity", label: "Actividad", icon: "◌" },
     { id: "achievements", label: "Achievements", icon: "▣" },
     { id: "verifier", label: "Verificador", icon: "✓" },
@@ -37,7 +44,6 @@
     dashboard: "Dashboard",
     badges: "Badges emitidas",
     issue: "Emitir badge",
-    certificate: "Diploma público",
     activity: "Actividad",
     achievements: "Achievements",
     verifier: "Verificador",
@@ -55,6 +61,7 @@
   let verifyResult = null;
   let toast = "";
   let manualJwt = "";
+  let publicBadgeId = getPublicBadgeIdFromPath();
   let achievementForm = emptyAchievementForm();
   let editingAchievementId = "";
   let issueForm = {
@@ -103,6 +110,9 @@
     apiBaseUrl = savedApiBaseUrl === "http://localhost:3000"
       ? defaultApiBaseUrl
       : savedApiBaseUrl || defaultApiBaseUrl;
+
+    if (publicBadgeId) return;
+
     loadAll();
   });
 
@@ -165,17 +175,48 @@
     previewBadge = null;
   }
 
+  function isValidAchievementImageUrl(value) {
+    const imageExtensionPattern = /\.(svg|png|jpe?g|webp|gif)(\?.*)?$/i;
+    const normalizedValue = String(value || "").trim();
+
+    if (normalizedValue.startsWith("/")) {
+      return imageExtensionPattern.test(normalizedValue);
+    }
+
+    try {
+      const url = new URL(normalizedValue);
+      return ["http:", "https:"].includes(url.protocol) && imageExtensionPattern.test(url.pathname + url.search);
+    } catch {
+      return false;
+    }
+  }
+
+  function isAchievementFormValid() {
+    return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(achievementForm.id || "")
+      && String(achievementForm.name || "").trim().length >= 2
+      && String(achievementForm.description || "").trim().length >= 10
+      && String(achievementForm.criteriaNarrative || "").trim().length >= 10
+      && isValidAchievementImageUrl(achievementForm.imageId)
+      && achievementValidityPresets.includes(achievementForm.validityPreset);
+  }
+
   async function saveAchievement() {
+    if (!isAchievementFormValid()) {
+      notify("Completa todos los datos del achievement correctamente");
+      return;
+    }
+
     saving = true;
 
     try {
       const payload = {
-        id: achievementForm.id,
-        name: achievementForm.name,
-        description: achievementForm.description,
-        criteriaNarrative: achievementForm.criteriaNarrative,
-        imageId: achievementForm.imageId || `${apiBaseUrl}/images/node-badge.svg`,
-        validUntil: achievementForm.validUntil || null,
+        id: achievementForm.id.trim(),
+        name: achievementForm.name.trim(),
+        description: achievementForm.description.trim(),
+        criteriaNarrative: achievementForm.criteriaNarrative.trim(),
+        imageId: achievementForm.imageId.trim(),
+        validityPreset: achievementForm.validityPreset,
+        validUntil: achievementForm.validityPreset === "custom" ? achievementForm.validUntil || null : null,
         revocable: achievementForm.revocable
       };
 
@@ -213,6 +254,7 @@
       criteriaNarrative: achievement.criteria?.narrative || "",
       imageId: achievement.image?.id || "",
       validUntil: achievement.validUntil ? achievement.validUntil.slice(0, 10) : "",
+      validityPreset: achievement.validityPreset || (achievement.validUntil ? "custom" : "1y"),
       revocable: achievement.revocable !== false
     };
   }
@@ -247,7 +289,7 @@
 
       selectedBadge = issuedBadge;
       previewBadge = issuedBadge;
-      activeTab = "certificate";
+      activeTab = "badges";
       issueForm = {
         recipientEmail: "",
         recipientName: "",
@@ -329,10 +371,6 @@
     notify("JWT copiado al portapapeles");
   }
 
-  function selectBadgeById(id) {
-    selectedBadge = badges.find((badge) => badge.id === id) || null;
-  }
-
   function statusVariant(status) {
     if (status === "revoked") return "destructive";
     if (status === "active") return "default";
@@ -341,108 +379,101 @@
   }
 </script>
 
-<AppShell
-  {activeTab}
-  {apiBaseUrl}
-  {loading}
-  {pageTitle}
-  {navigationItems}
-  {toast}
-  onNavigate={navigate}
-  onApiBaseUrlChange={(value) => (apiBaseUrl = value)}
-  onSaveSettings={saveSettings}
-  onReload={loadAll}
-  onIssue={() => navigate("issue")}
->
-  {#if activeTab === "dashboard"}
-    <DashboardView
-      {achievements}
-      {badges}
-      {activeBadges}
-      {revokedBadges}
-      {loading}
-      {latestBadges}
-      {statusVariant}
-      onNavigate={navigate}
-    />
-  {/if}
+{#if publicBadgeId}
+  <PublicBadgeView {apiBaseUrl} badgeId={publicBadgeId} />
+{:else}
+  <AppShell
+    {activeTab}
+    {apiBaseUrl}
+    {loading}
+    {pageTitle}
+    {navigationItems}
+    {toast}
+    onNavigate={navigate}
+    onApiBaseUrlChange={(value) => (apiBaseUrl = value)}
+    onSaveSettings={saveSettings}
+    onReload={loadAll}
+    onIssue={() => navigate("issue")}
+  >
+    {#if activeTab === "dashboard"}
+      <DashboardView
+        {achievements}
+        {badges}
+        {activeBadges}
+        {revokedBadges}
+        {loading}
+        {latestBadges}
+        {statusVariant}
+        onNavigate={navigate}
+      />
+    {/if}
 
-  {#if activeTab === "badges"}
-    <BadgesView
-      {badges}
-      {selectedBadge}
-      {verifyResult}
-      {loading}
-      {statusVariant}
-      onReload={loadAll}
-      onSelect={(badge) => (selectedBadge = badge)}
-      onVerify={verifyBadge}
-      onCopy={copyJwt}
-      onRevoke={revokeBadge}
-      onDelete={deleteBadge}
-      onNavigate={navigate}
-    />
-  {/if}
+    {#if activeTab === "badges"}
+      <BadgesView
+        {badges}
+        {verifyResult}
+        {loading}
+        {statusVariant}
+        onReload={loadAll}
+        onSelect={(badge) => (selectedBadge = badge)}
+        onVerify={verifyBadge}
+        onCopy={copyJwt}
+        onRevoke={revokeBadge}
+        onDelete={deleteBadge}
+      />
+    {/if}
 
-  {#if activeTab === "issue"}
-    <IssueView
-      {achievements}
-      {achievementOptions}
-      {issueForm}
-      {saving}
-      {previewBadge}
-      {apiBaseUrl}
-      onIssueFormChange={patchIssueForm}
-      onSubmit={issueBadge}
-      onVerify={verifyBadge}
-      onCopy={copyJwt}
-    />
-  {/if}
+    {#if activeTab === "issue"}
+      <IssueView
+        {achievements}
+        {achievementOptions}
+        {issueForm}
+        {saving}
+        {previewBadge}
+        {apiBaseUrl}
+        onIssueFormChange={patchIssueForm}
+        onSubmit={issueBadge}
+        onVerify={verifyBadge}
+        onCopy={copyJwt}
+      />
+    {/if}
 
-  {#if activeTab === "certificate"}
-    <CertificateView
-      {badges}
-      {selectedBadge}
-      onSelectById={selectBadgeById}
-      onVerify={verifyBadge}
-      onCopy={copyJwt}
-    />
-  {/if}
+    {#if activeTab === "activity"}
+      <ActivityView {activity} />
+    {/if}
 
-  {#if activeTab === "activity"}
-    <ActivityView {activity} />
-  {/if}
+    {#if activeTab === "achievements"}
+      <AchievementsView
+        {achievements}
+        {badges}
+        {achievementForm}
+        {editingAchievementId}
+        {saving}
+        {apiBaseUrl}
+        onFormChange={patchAchievementForm}
+        onSubmit={saveAchievement}
+        onReset={resetAchievementForm}
+        onEdit={editAchievement}
+        onDelete={deleteAchievement}
+      />
+    {/if}
 
-  {#if activeTab === "achievements"}
-    <AchievementsView
-      {achievements}
-      {achievementForm}
-      {editingAchievementId}
-      {saving}
-      {apiBaseUrl}
-      onFormChange={patchAchievementForm}
-      onSubmit={saveAchievement}
-      onReset={resetAchievementForm}
-      onEdit={editAchievement}
-      onDelete={deleteAchievement}
-    />
-  {/if}
+    {#if activeTab === "verifier"}
+      <VerifierView
+        {manualJwt}
+        {verifyResult}
+        onJwtChange={(value) => (manualJwt = value)}
+        onSubmit={verifyManualJwt}
+      />
+    {/if}
 
-  {#if activeTab === "verifier"}
-    <VerifierView
-      {manualJwt}
-      {verifyResult}
-      onJwtChange={(value) => (manualJwt = value)}
-      onSubmit={verifyManualJwt}
-    />
-  {/if}
-
-  {#if activeTab === "settings"}
-    <SettingsView
-      {apiBaseUrl}
-      onApiBaseUrlChange={(value) => (apiBaseUrl = value)}
-      onSave={saveSettings}
-      onReload={loadAll}
-    />
-  {/if}
-</AppShell>
+    {#if activeTab === "settings"}
+      <SettingsView
+        {apiBaseUrl}
+        onApiBaseUrlChange={(value) => (apiBaseUrl = value)}
+        onSave={saveSettings}
+        onReload={loadAll}
+      />
+    {/if}
+  </AppShell>
+{/if}
