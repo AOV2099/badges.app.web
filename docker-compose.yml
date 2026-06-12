@@ -7,10 +7,10 @@ services:
       PORT: 3001
       BASE_URL: ${BACKEND_PUBLIC_URL:-http://localhost:3001}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
-      BADGE_SIGNING_SECRET: ${BADGE_SIGNING_SECRET:-change-me-in-portainer}
       BADGE_VALIDITY_DAYS: ${BADGE_VALIDITY_DAYS:-365}
       BADGES_DATA_PATH: /app/data/issued-badges.json
       ACHIEVEMENTS_DATA_PATH: /app/data/achievements.json
+      BADGE_PRIVATE_KEY_PATH: /app/data/signing-private-key.pem
     volumes:
       - badges_data:/app/data
     ports:

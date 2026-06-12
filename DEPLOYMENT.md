@@ -31,8 +31,8 @@ BACKEND_PORT=3001
 BACKEND_PUBLIC_URL=http://TU_HOST:3001
 FRONTEND_API_BASE_URL=/api
 CORS_ORIGIN=*
-BADGE_SIGNING_SECRET=cambia-este-secreto
 BADGE_VALIDITY_DAYS=365
+BADGE_PRIVATE_KEY_PATH=/app/data/signing-private-key.pem
 ```
 
 4. Despliega el stack.
@@ -43,4 +43,5 @@ BADGE_VALIDITY_DAYS=365
 - Si expones el backend con otro dominio o proxy, actualiza `BACKEND_PUBLIC_URL`.
 - `FRONTEND_API_BASE_URL=/api` usa el proxy interno de Nginx hacia `backend:3001`.
 - El volumen `badges_data` conserva badges y achievements aunque recrees contenedores.
-- Cambia siempre `BADGE_SIGNING_SECRET` en Portainer.
+- El backend firma nuevas badges con `RS256` y guarda la llave privada RSA en `BADGE_PRIVATE_KEY_PATH`.
+- Conserva el volumen `badges_data`; si se pierde la llave privada, las badges emitidas antes ya no podrán verificarse con la misma firma.

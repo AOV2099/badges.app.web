@@ -6,7 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { issuer } from "./issuer.js";
 import { achievements } from "./badges.js";
-import { signCredential, verifyCredentialJwt } from "./signer.js";
+import { getKeyId, getPublicJwk, signCredential, verifyCredentialJwt } from "./signer.js";
 import { verifyIssuedBadge } from "./verifier.js";
 
 const app = express();
@@ -167,11 +167,20 @@ function resolveValidUntil(achievement, issuedAt) {
   return addDays(issuedAt, DEFAULT_VALIDITY_DAYS);
 }
 
+function getJwtAlgorithm(jwt) {
+  try {
+    return JSON.parse(Buffer.from(String(jwt).split(".")[0], "base64url").toString("utf-8")).alg;
+  } catch {
+    return null;
+  }
+}
+
 async function buildPublicBadgeResponse(badge) {
   let verification;
+  const jwt = await getDownloadableBadgeJwt(badge);
 
   try {
-    const payload = await verifyCredentialJwt(badge.jwt);
+    const payload = await verifyCredentialJwt(jwt);
     verification = verifyIssuedBadge(payload, readIssuedBadges());
   } catch (error) {
     verification = {
@@ -198,11 +207,23 @@ async function buildPublicBadgeResponse(badge) {
   };
 }
 
+async function getDownloadableBadgeJwt(badge) {
+  if (getJwtAlgorithm(badge.jwt) === "RS256") {
+    return badge.jwt;
+  }
+
+  return await signCredential({
+    ...badge.credential,
+    issuer: await getPublicIssuerProfile()
+  });
+}
+
 app.get("/", (req, res) => {
   res.json({
     message: "Open Badges 3.0 Local Issuer",
     endpoints: [
       "GET /issuer",
+      "GET /issuer/keys/1",
       "GET /achievements",
       "POST /achievements",
       "GET /achievements/:id",
@@ -221,8 +242,37 @@ app.get("/", (req, res) => {
   });
 });
 
-app.get("/issuer", (req, res) => {
-  res.json(issuer);
+async function getPublicIssuerProfile() {
+  const publicJwk = await getPublicJwk();
+
+  return {
+    ...issuer,
+    publicKey: [
+      {
+        id: getKeyId(),
+        type: "JsonWebKey2020",
+        controller: issuer.id,
+        publicKeyJwk: publicJwk
+      }
+    ],
+    verificationMethod: [
+      {
+        id: getKeyId(),
+        type: "JsonWebKey2020",
+        controller: issuer.id,
+        publicKeyJwk: publicJwk
+      }
+    ],
+    assertionMethod: [getKeyId()]
+  };
+}
+
+app.get("/issuer", async (req, res) => {
+  res.json(await getPublicIssuerProfile());
+});
+
+app.get("/issuer/keys/1", async (req, res) => {
+  res.json(await getPublicJwk());
 });
 
 app.get("/achievements", (req, res) => {
@@ -327,6 +377,7 @@ app.post("/badges/issue", async (req, res) => {
   const revocable = achievement.revocable !== false;
   const autoRevocation = achievement.validityPreset !== "none";
 
+  const credentialIssuer = await getPublicIssuerProfile();
   const credential = {
     "@context": [
       "https://www.w3.org/ns/credentials/v2",
@@ -334,7 +385,7 @@ app.post("/badges/issue", async (req, res) => {
     ],
     id: `${BASE_URL}/badges/${badgeId}`,
     type: ["VerifiableCredential", "OpenBadgeCredential"],
-    issuer,
+    issuer: credentialIssuer,
     validFrom: issuedAt.toISOString(),
     credentialStatus: {
       id: `${BASE_URL}/badges/${badgeId}`,
@@ -405,14 +456,14 @@ app.get("/badges/:id", (req, res) => {
   res.json(badge);
 });
 
-app.get("/badges/:id/jwt", (req, res) => {
+app.get("/badges/:id/jwt", async (req, res) => {
   const badge = getBadgeById(req.params.id);
 
   if (!badge) {
     return res.status(404).json({ error: "Badge not found" });
   }
 
-  res.type("text/plain").send(badge.jwt);
+  res.type("text/plain").send(await getDownloadableBadgeJwt(badge));
 });
 
 app.post("/badges/:id/revoke", (req, res) => {

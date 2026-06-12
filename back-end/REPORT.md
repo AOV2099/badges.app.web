@@ -7,11 +7,13 @@ Se reforzó el backend demostrativo de Open Badges 3.0 para que arranque correct
 ## Cambios realizados
 
 - Se habilitó ESM con `"type": "module"` para que `npm start` ejecute los `import`.
-- Se agregó configuración por variables de entorno para `PORT`, `BASE_URL`, `CORS_ORIGIN`, `BADGE_VALIDITY_DAYS`, `BADGE_SIGNING_SECRET`, `ISSUER_ID` y `BADGES_DATA_PATH`.
+- Se agregó configuración por variables de entorno para `PORT`, `BASE_URL`, `CORS_ORIGIN`, `BADGE_VALIDITY_DAYS`, `ISSUER_ID`, `BADGES_DATA_PATH` y `BADGE_PRIVATE_KEY_PATH`.
 - Se corrigió la ruta de persistencia para guardar emisiones dentro de `back-end/data/issued-badges.json`.
 - Se agregaron listados públicos: `GET /achievements` y `GET /badges`.
 - Se agregó CRUD de achievements: `POST /achievements`, `PUT /achievements/:id` y `DELETE /achievements/:id`.
 - Se agregó descarga directa del JWT con `GET /badges/:id/jwt`.
+- Se migró la firma de credenciales a `RS256` con llave RSA persistida y JWK pública embebida en el header del JWT descargable.
+- Se expone la llave pública JWK desde `GET /issuer/keys/1` y en el perfil del issuer.
 - Se agregó revocación básica con `POST /badges/:id/revoke`.
 - Se agregó eliminación local de registros emitidos con `DELETE /badges/:id`.
 - Se agregó `validUntil` y `credentialStatus` a cada credencial emitida.
@@ -27,6 +29,7 @@ Se reforzó el backend demostrativo de Open Badges 3.0 para que arranque correct
 
 - `GET /`
 - `GET /issuer`
+- `GET /issuer/keys/1`
 - `GET /achievements`
 - `POST /achievements`
 - `GET /achievements/:id`
@@ -43,7 +46,7 @@ Se reforzó el backend demostrativo de Open Badges 3.0 para que arranque correct
 
 ## Notas
 
-Este backend sigue siendo demostrativo. Para producción faltaría reemplazar la firma `HS256` por llaves asimétricas publicables, implementar autenticación para emitir/revocar, agregar base de datos real, auditoría, pruebas automatizadas y validación completa contra el schema oficial de Open Badges 3.0.
+Este backend sigue siendo demostrativo. Para producción faltaría implementar autenticación para emitir/revocar, agregar base de datos real, auditoría, pruebas automatizadas, rotación controlada de llaves y validación completa contra el schema oficial de Open Badges 3.0.
 
 Para evitar conflictos con otros proyectos que usen `localhost:3000`, se agregó el script `npm run dev:badges`, que levanta este backend en `http://localhost:3001`.
 

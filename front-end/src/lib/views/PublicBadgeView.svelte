@@ -13,6 +13,7 @@
   let loading = true;
   let error = "";
   let copied = false;
+  let downloading = false;
 
   $: credential = badge?.credential;
   $: subject = credential?.credentialSubject;
@@ -45,6 +46,35 @@
   function openLinkedIn() {
     if (!badge) return;
     window.open(buildLinkedInCertificationUrl(badge, publicUrl), "_blank", "noopener,noreferrer");
+  }
+
+  async function downloadBadgeFile() {
+    if (!badge?.id || downloading) return;
+
+    downloading = true;
+
+    try {
+      const jwt = await apiRequest(apiBaseUrl, `/badges/${encodeURIComponent(badge.id)}/jwt`);
+      const fileName = `${String(achievement?.name || "open-badge")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") || "open-badge"}-${badge.id}.jwt`;
+      const fileUrl = URL.createObjectURL(
+        new Blob([jwt], {
+          type: "application/vc+jwt;charset=utf-8"
+        })
+      );
+      const link = document.createElement("a");
+
+      link.href = fileUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(fileUrl);
+    } finally {
+      downloading = false;
+    }
   }
 </script>
 
@@ -146,9 +176,18 @@
             </div>
             <div class="flex flex-wrap gap-2">
               <Button variant="outline" on:click={copyPublicUrl}>{copied ? "Copiado" : "Copiar"}</Button>
+              <Button variant="outline" on:click={downloadBadgeFile}>
+                {downloading ? "Descargando..." : "Descargar .jwt"}
+              </Button>
               <Button on:click={openLinkedIn}>Add to LinkedIn</Button>
             </div>
           </div>
+          <p class="mt-3 text-xs text-slate-500">
+            Para validarla externamente, descarga el archivo .jwt y súbelo en
+            <a class="font-semibold text-violet-700 hover:text-violet-800" href="https://verifybadge.org/" target="_blank" rel="noreferrer">
+              verifybadge.org
+            </a>.
+          </p>
         </div>
       </Card>
     {/if}
