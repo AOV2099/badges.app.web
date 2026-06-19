@@ -7,16 +7,15 @@
   export let tone = "slate";
 
   const tones = {
-    slate: "text-slate-950",
+    slate: "text-foreground",
     emerald: "text-emerald-700",
     red: "text-red-700",
-    violet: "text-violet-700",
-    amber: "text-amber-700"
+    violet: "text-primary"
   };
 </script>
 
-<Card>
-  <p class="text-sm font-semibold text-slate-500">{label}</p>
+<Card className="bg-white shadow-lg shadow-primary/5">
+  <p class="text-sm font-semibold text-muted-foreground">{label}</p>
   <p class={`mt-3 text-3xl font-black tracking-tight ${tones[tone]}`}>{value}</p>
-  <p class="mt-2 text-sm text-slate-500">{description}</p>
+  <p class="mt-2 text-sm text-muted-foreground">{description}</p>
 </Card>

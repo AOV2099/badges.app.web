@@ -1,5 +1,6 @@
 <script>
-  import { cn } from "$lib/utils";
+  import { Input as ShadcnInput } from "$lib/components/ui/input/index.js";
+  import { cn } from "$lib/utils.js";
 
   export let value = "";
   export let type = "text";
@@ -8,14 +9,12 @@
   export let className = "";
 </script>
 
-<input
+<ShadcnInput
   bind:value
   {type}
   {placeholder}
   {disabled}
+  class={cn("rounded-xl border-transparent bg-secondary/70 text-foreground placeholder:text-muted-foreground shadow-inner shadow-primary/5 focus-visible:ring-ring", className)}
   on:input
-  class={cn(
-    "h-10 w-full rounded-lg border border-[var(--input)] bg-white px-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-[var(--ring)] disabled:cursor-not-allowed disabled:bg-slate-100 disabled:opacity-70",
-    className
-  )}
+  {...$$restProps}
 />

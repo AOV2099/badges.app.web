@@ -5,18 +5,20 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/index.js",
-    "dev:badges": "PORT=3001 BASE_URL=http://localhost:3001 nodemon src/index.js",
-    "start:badges": "PORT=3001 BASE_URL=http://localhost:3001 node src/index.js",
-    "start": "node src/index.js"
+    "dev": "sh -c 'set -a; [ -f ../.env ] && . ../.env; set +a; nodemon src/index.js'",
+    "dev:badges": "sh -c 'set -a; [ -f ../.env ] && . ../.env; set +a; PORT=3001 BASE_URL=${BACKEND_PUBLIC_URL:-http://localhost:3001} nodemon src/index.js'",
+    "start:badges": "sh -c 'set -a; [ -f ../.env ] && . ../.env; set +a; PORT=3001 BASE_URL=${BACKEND_PUBLIC_URL:-http://localhost:3001} node src/index.js'",
+    "start": "sh -c 'set -a; [ -f ../.env ] && . ../.env; set +a; node src/index.js'"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "jose": "^6.2.3",
+    "pg": "^8.22.0",
     "uuid": "^14.0.0"
   },
   "devDependencies": {

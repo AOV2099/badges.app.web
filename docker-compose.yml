@@ -1,4 +1,17 @@
 services:
+  db:
+    image: postgres:16
+    container_name: badges-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-open_badges}
+      POSTGRES_USER: ${DB_USER:-badges}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-badges}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    restart: unless-stopped
+
   backend:
     build:
       context: ./back-end
@@ -8,6 +21,16 @@ services:
       BASE_URL: ${BACKEND_PUBLIC_URL:-http://localhost:3001}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       BADGE_VALIDITY_DAYS: ${BADGE_VALIDITY_DAYS:-365}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-open_badges}
+      DB_USER: ${DB_USER:-badges}
+      DB_PASSWORD: ${DB_PASSWORD:-badges}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/auth/google/callback}
+      GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-}
       BADGES_DATA_PATH: /app/data/issued-badges.json
       ACHIEVEMENTS_DATA_PATH: /app/data/achievements.json
       BADGE_PRIVATE_KEY_PATH: /app/data/signing-private-key.pem
@@ -15,6 +38,8 @@ services:
       - badges_data:/app/data
     ports:
       - "${BACKEND_PORT:-3001}:3001"
+    depends_on:
+      - db
     restart: unless-stopped
 
   frontend:
@@ -33,3 +58,4 @@ services:
 
 volumes:
   badges_data:
+  postgres_data:

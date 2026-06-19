@@ -1,31 +1,103 @@
 <script>
-  import Button from "$lib/components/ui/Button.svelte";
-  import Input from "$lib/components/ui/Input.svelte";
+  import Activity from "lucide-svelte/icons/activity";
+  import Award from "lucide-svelte/icons/award";
+  import BadgeCheck from "lucide-svelte/icons/badge-check";
+  import Building2 from "lucide-svelte/icons/building-2";
+  import LayoutDashboard from "lucide-svelte/icons/layout-dashboard";
+  import LogOut from "lucide-svelte/icons/log-out";
+  import Menu from "lucide-svelte/icons/menu";
+  import SendHorizontal from "lucide-svelte/icons/send-horizontal";
+  import Settings from "lucide-svelte/icons/settings";
+  import Users from "lucide-svelte/icons/users";
+  import X from "lucide-svelte/icons/x";
+  import Avatar from "$lib/components/ui/Avatar.svelte";
 
   export let activeTab = "dashboard";
-  export let apiBaseUrl = "";
-  export let loading = false;
-  export let pageTitle = "Dashboard";
+  export let pageTitle = "Panel";
   export let navigationItems = [];
+  export let userName = "Nombre de usuario";
+  export let userRole = "General";
+  export let userImage = "";
   export let onNavigate = () => {};
-  export let onApiBaseUrlChange = () => {};
-  export let onSaveSettings = () => {};
-  export let onReload = () => {};
-  export let onIssue = () => {};
-  export let toast = "";
+  export let onLogout = () => {};
+
+  const navigationIcons = {
+    dashboard: LayoutDashboard,
+    badges: BadgeCheck,
+    pending: Activity,
+    issue: SendHorizontal,
+    activity: Activity,
+    achievements: Award,
+    settings: Settings,
+    "super-users": Users,
+    divisions: Building2
+  };
+
+  let sidebarHovered = false;
+  let mobileSidebarOpen = false;
+
+  $: sidebarExpanded = sidebarHovered || mobileSidebarOpen;
+  $: userInitials = userName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toLocaleUpperCase("es-MX") || "U";
+
+  function getNavigationIcon(id) {
+    return navigationIcons[id] || BadgeCheck;
+  }
+
+  function handleNavigate(tab) {
+    onNavigate(tab);
+    mobileSidebarOpen = false;
+  }
+
+  function handleLogout() {
+    onLogout();
+    mobileSidebarOpen = false;
+  }
 </script>
 
 <div class="min-h-screen bg-[var(--background)] text-[var(--foreground)] lg:flex">
-  <aside class="border-b border-white/10 bg-[var(--sidebar)] text-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-[280px] lg:border-b-0">
+  {#if mobileSidebarOpen}
+    <button
+      type="button"
+      class="fixed inset-0 z-30 bg-slate-950/50 backdrop-blur-sm lg:hidden"
+      aria-label="Cerrar menú"
+      on:click={() => (mobileSidebarOpen = false)}
+    ></button>
+  {/if}
+
+  <aside
+    class={`fixed inset-y-0 left-0 z-40 w-[280px] bg-[var(--sidebar)] text-white shadow-2xl shadow-primary/20 transition-all duration-300 ${
+      mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+    } lg:translate-x-0 ${
+      sidebarExpanded ? "lg:w-[280px]" : "lg:w-[88px]"
+    }`}
+    on:mouseenter={() => (sidebarHovered = true)}
+    on:mouseleave={() => (sidebarHovered = false)}
+  >
     <div class="flex h-full flex-col p-5">
-      <div class="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
-        <div class="grid h-11 w-11 place-items-center rounded-xl bg-violet-500 font-black shadow-lg shadow-violet-500/20">
-          SB
+      <div class={`flex items-center gap-3 rounded-2xl bg-white/10 p-3 shadow-lg shadow-black/10 ${sidebarExpanded ? "" : "lg:justify-center"}`}>
+        <Avatar src={userImage} alt={`Foto de ${userName}`} fallback={userInitials} className="h-11 w-11" />
+        <div class={sidebarExpanded ? "min-w-0 flex-1" : "lg:hidden"}>
+          <h1 class="max-w-[10.5rem] overflow-hidden break-words text-sm font-black leading-tight tracking-tight [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            {userName}
+          </h1>
+          <p class="mt-1 max-w-[10.5rem] truncate font-mono text-[0.68rem] font-medium uppercase tracking-[0.16em] text-white/45">
+            {userRole}
+          </p>
         </div>
-        <div>
-          <p class="text-sm font-semibold text-white/60">Issuer Console</p>
-          <h1 class="text-base font-black tracking-tight">Stitch Badges</h1>
-        </div>
+        <button
+          type="button"
+          class="ml-auto grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white/80 transition hover:bg-white/15 hover:text-white lg:hidden"
+          aria-label="Cerrar menú"
+          on:click={() => (mobileSidebarOpen = false)}
+        >
+          <X size={18} />
+        </button>
       </div>
 
       <nav class="mt-8 space-y-1">
@@ -33,50 +105,71 @@
           <button
             class={`group relative flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold transition ${
               activeTab === item.id
-                ? "bg-white/10 text-white"
-                : "text-slate-300 hover:bg-white/5 hover:text-white"
-            }`}
-            on:click={() => onNavigate(item.id)}
+                ? "bg-white/15 text-white shadow-sm shadow-black/10"
+                : "text-white/70 hover:bg-white/5 hover:text-white"
+            } ${sidebarExpanded ? "" : "lg:justify-center"}`}
+            title={item.label}
+            on:click={() => handleNavigate(item.id)}
           >
             {#if activeTab === item.id}
-              <span class="absolute left-0 h-7 w-1 rounded-r-full bg-violet-400"></span>
+              <span class="absolute left-0 h-7 w-1 rounded-r-full bg-white"></span>
             {/if}
-            <span class="grid h-8 w-8 place-items-center rounded-lg bg-white/5 text-violet-200">{item.icon}</span>
-            {item.label}
+            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/10 text-white">
+              <svelte:component this={getNavigationIcon(item.id)} size={18} />
+            </span>
+            <span class={sidebarExpanded ? "" : "lg:hidden"}>{item.label}</span>
+            {#if !sidebarExpanded}
+              <span class="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 z-50 hidden -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
+                {item.label}
+              </span>
+            {/if}
           </button>
         {/each}
       </nav>
 
-      <div class="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4">
-        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Backend</p>
-        <p class="mt-2 break-all font-mono text-xs text-slate-200">{apiBaseUrl}</p>
-        <Button className="mt-4 w-full border-white/15 bg-white/10 text-white hover:bg-white/15" variant="outline" size="sm" on:click={onReload}>
-          {loading ? "Sincronizando..." : "Sincronizar"}
-        </Button>
-      </div>
+      <button
+        type="button"
+        class={`group relative mt-auto flex w-full items-center gap-3 rounded-2xl bg-white/10 p-3 text-sm font-bold text-white/80 shadow-lg shadow-black/10 transition hover:bg-white/15 hover:text-white ${
+          sidebarExpanded ? "" : "lg:justify-center"
+        }`}
+        title="Cerrar sesión"
+        on:click={handleLogout}
+      >
+        <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/10 text-white">
+          <LogOut size={18} />
+        </span>
+        <span class={sidebarExpanded ? "" : "lg:hidden"}>Salir</span>
+        {#if !sidebarExpanded}
+          <span class="pointer-events-none absolute left-[calc(100%+0.75rem)] top-1/2 z-50 hidden -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-950 px-3 py-2 text-xs font-bold text-white opacity-0 shadow-xl transition group-hover:opacity-100 lg:block">
+            Salir
+          </span>
+        {/if}
+      </button>
     </div>
   </aside>
 
-  <main class="min-h-screen flex-1 lg:ml-[280px]">
-    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/75 px-5 py-4 backdrop-blur-xl lg:px-8">
+  <main class={`min-h-screen flex-1 transition-all duration-300 ${sidebarExpanded ? "lg:ml-[280px]" : "lg:ml-[88px]"}`}>
+    <header class="sticky top-0 z-30 bg-white/80 px-5 py-4 shadow-sm shadow-primary/5 backdrop-blur-xl lg:px-8">
       <div class="mx-auto flex max-w-[1440px] flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p class="text-sm font-medium text-slate-500">Open Badges 3.0 · Admin Portal</p>
-          <h2 class="text-2xl font-black tracking-tight text-slate-950">{pageTitle}</h2>
+        <div class="flex items-center gap-3">
+          <button
+            type="button"
+            class="grid h-11 w-11 place-items-center rounded-xl bg-white text-primary shadow-lg shadow-primary/10 lg:hidden"
+            aria-label="Abrir menú"
+            on:click={() => (mobileSidebarOpen = true)}
+          >
+            <Menu size={22} />
+          </button>
+          <div>
+            <p class="text-sm font-medium text-muted-foreground">Insignias verificables · Panel administrativo</p>
+            <h2 class="text-2xl font-black tracking-tight text-foreground">{pageTitle}</h2>
+          </div>
         </div>
-        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Input value={apiBaseUrl} className="w-full sm:w-80" on:input={(event) => onApiBaseUrlChange(event.target.value)} />
-          <Button variant="secondary" on:click={onSaveSettings}>Guardar API</Button>
-          <Button on:click={onIssue}>Emitir badge</Button>
+        <div class="flex flex-wrap gap-2 sm:items-center">
+          <slot name="actions" />
         </div>
       </div>
     </header>
-
-    {#if toast}
-      <div class="fixed right-5 top-5 z-50 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 shadow-xl">
-        {toast}
-      </div>
-    {/if}
 
     <div class="mx-auto max-w-[1440px] space-y-6 p-5 lg:p-8">
       <slot />

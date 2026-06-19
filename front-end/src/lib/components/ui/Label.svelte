@@ -1,9 +1,10 @@
 <script>
-  import { cn } from "$lib/utils";
+  import { Label as ShadcnLabel } from "$lib/components/ui/label/index.js";
+  import { cn } from "$lib/utils.js";
 
   export let className = "";
 </script>
 
-<label class={cn("text-sm font-medium text-slate-700", className)}>
+<ShadcnLabel class={cn("text-foreground/80", className)} {...$$restProps}>
   <slot />
-</label>
+</ShadcnLabel>

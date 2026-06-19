@@ -6,7 +6,7 @@
   import Label from "$lib/components/ui/Label.svelte";
   import Select from "$lib/components/ui/Select.svelte";
   import Textarea from "$lib/components/ui/Textarea.svelte";
-  import { getSlugFromUrl } from "$lib/utils";
+  import { buildAchievementId, getSlugFromUrl } from "$lib/utils";
 
   export let achievements = [];
   export let badges = [];
@@ -19,6 +19,7 @@
   export let onReset = () => {};
   export let onEdit = () => {};
   export let onDelete = () => {};
+  export let onViewIssued = () => {};
 
   const validityOptions = [
     { value: "6m", label: "6 meses" },
@@ -30,8 +31,9 @@
   let searchQuery = "";
   let dialogOpen = false;
 
-  $: previewImageUrl = achievementForm.imageId || `${apiBaseUrl}/images/node-badge.svg`;
-  $: slugIsValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(achievementForm.id || "");
+  $: generatedAchievementId = editingAchievementId || buildAchievementId(achievementForm.name);
+  $: previewImageUrl = String(achievementForm.imageId || "").trim();
+  $: slugIsValid = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(generatedAchievementId);
   $: nameIsValid = String(achievementForm.name || "").trim().length >= 2;
   $: descriptionIsValid = String(achievementForm.description || "").trim().length >= 10;
   $: criteriaIsValid = String(achievementForm.criteriaNarrative || "").trim().length >= 10;
@@ -115,19 +117,19 @@
   <Card>
     <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
       <div>
-        <h3 class="text-lg font-bold text-slate-950">Achievements</h3>
+        <h3 class="text-lg font-bold text-slate-950">Logros</h3>
         <p class="text-sm text-slate-500">
-          Catálogo de badges disponibles. Mostrando {filteredAchievements.length} de {achievements.length}.
+          Catálogo de logros disponibles. Mostrando {filteredAchievements.length} de {achievements.length}.
         </p>
       </div>
       <div class="flex flex-col gap-2 md:flex-row md:items-center">
         <Input
           className="md:w-80"
-          placeholder="Buscar achievements..."
+          placeholder="Buscar logros..."
           value={searchQuery}
           on:input={(event) => (searchQuery = event.target.value)}
         />
-        <Button on:click={openCreateDialog}>Nuevo achievement</Button>
+        <Button on:click={openCreateDialog}>Nuevo logro</Button>
       </div>
     </div>
   </Card>
@@ -170,7 +172,12 @@
 
           <div class="flex gap-2 pt-1">
             {#if hasIssuedBadges(achievement)}
-              <Button size="sm" variant="outline" className="flex-1" disabled>Emitido</Button>
+              <div class="grid flex-1 gap-2">
+                <Button size="sm" variant="outline" className="w-full" disabled>Emitido</Button>
+                <Button size="sm" className="w-full" on:click={() => onViewIssued(achievement)}>
+                  Ver insignias emitidas
+                </Button>
+              </div>
             {:else}
               <Button size="sm" variant="outline" className="flex-1" on:click={() => openEditDialog(achievement)}>Editar</Button>
               <Button size="sm" variant="destructive" className="flex-1" on:click={() => onDelete(achievement)}>Eliminar</Button>
@@ -181,7 +188,7 @@
     {:else}
       <Card className="sm:col-span-2 xl:col-span-4">
         <div class="p-8 text-center text-slate-500">
-          No hay achievements que coincidan con la búsqueda.
+          No hay logros que coincidan con la búsqueda.
         </div>
       </Card>
     {/each}
@@ -192,51 +199,45 @@
       <button
         type="button"
         class="absolute inset-0 bg-slate-950/55 backdrop-blur-sm"
-        aria-label="Cerrar formulario de achievement"
+        aria-label="Cerrar formulario de logro"
         on:click={closeDialog}
       ></button>
 
       <section class="relative max-h-[92vh] w-full max-w-3xl overflow-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h3 class="text-lg font-bold text-slate-950">{editingAchievementId ? "Editar achievement" : "Crear achievement"}</h3>
-            <p class="text-sm text-slate-500">Define la badge, su imagen y sus políticas de emisión.</p>
+            <h3 class="text-lg font-bold text-slate-950">{editingAchievementId ? "Editar logro" : "Crear logro"}</h3>
+            <p class="text-sm text-slate-500">Define el logro, su imagen y sus políticas de emisión.</p>
           </div>
           <Button variant="ghost" on:click={closeDialog}>Cerrar</Button>
         </div>
 
         <form class="mt-5 grid gap-4 md:grid-cols-2" on:submit|preventDefault={submitForm}>
-          <div class="space-y-2">
-            <Label>ID slug</Label>
+          <div class="space-y-2 md:col-span-2">
+            <Label>Nombre del curso</Label>
             <Input
-              placeholder="curso-node-basico"
-              value={achievementForm.id}
-              disabled={Boolean(editingAchievementId)}
-              on:input={(event) => onFormChange({ id: event.target.value })}
-            />
-            {#if achievementForm.id && !slugIsValid}
-              <p class="text-xs font-semibold text-red-600">Usa solo minúsculas, números y guiones. Ej: curso-node-basico.</p>
-            {/if}
-          </div>
-          <div class="space-y-2">
-            <Label>Nombre</Label>
-            <Input
-              placeholder="Curso básico de Node.js"
+              placeholder="CURSO BÁSICO DE NODE.JS"
               value={achievementForm.name}
               on:input={(event) => onFormChange({ name: event.target.value })}
             />
             {#if achievementForm.name && !nameIsValid}
               <p class="text-xs font-semibold text-red-600">El nombre debe tener al menos 2 caracteres.</p>
             {/if}
+            {#if generatedAchievementId && !slugIsValid}
+              <p class="text-xs font-semibold text-red-600">El nombre debe generar un identificador compatible.</p>
+            {/if}
           </div>
           <div class="space-y-2 md:col-span-2">
             <Label>Descripción</Label>
             <Textarea
               rows={3}
-              placeholder="Qué reconoce este badge"
+              placeholder="Ejemplo: Reconoce que el estudiante completó el curso de Node.js y demostró dominio de fundamentos, módulos y APIs." 
               value={achievementForm.description}
               on:input={(event) => onFormChange({ description: event.target.value })}
             />
+            <p class="text-xs text-slate-500">
+              Ejemplo: “Reconoce que el estudiante completó el curso de Node.js y demostró dominio de fundamentos, módulos y APIs”.
+            </p>
             {#if achievementForm.description && !descriptionIsValid}
               <p class="text-xs font-semibold text-red-600">La descripción debe tener al menos 10 caracteres.</p>
             {/if}
@@ -245,10 +246,13 @@
             <Label>Criterios</Label>
             <Textarea
               rows={4}
-              placeholder="Qué debe cumplir el estudiante"
+              placeholder="Ejemplo: Aprobó evaluación final con al menos 80%, entregó proyecto funcional y asistió al 90% de las sesiones." 
               value={achievementForm.criteriaNarrative}
               on:input={(event) => onFormChange({ criteriaNarrative: event.target.value })}
             />
+            <p class="text-xs text-slate-500">
+              Ejemplo: “Aprobó evaluación final con al menos 80%, entregó proyecto funcional y asistió al 90% de las sesiones”.
+            </p>
             {#if achievementForm.criteriaNarrative && !criteriaIsValid}
               <p class="text-xs font-semibold text-red-600">Los criterios deben tener al menos 10 caracteres.</p>
             {/if}
@@ -256,7 +260,7 @@
           <div class="space-y-2 md:col-span-2">
             <Label>Imagen</Label>
             <Input
-              placeholder={`${apiBaseUrl}/images/node-badge.svg`}
+              placeholder="https://ejemplo.com/insignia.svg"
               value={achievementForm.imageId}
               on:input={(event) => onFormChange({ imageId: event.target.value })}
             />
@@ -272,13 +276,13 @@
               value={achievementForm.validityPreset}
               options={validityOptions}
               placeholder="Selecciona vigencia"
-              on:change={(event) => onFormChange({ validityPreset: event.target.value, validUntil: "" })}
+              on:change={(event) => onFormChange({ validityPreset: event.detail.value, validUntil: "" })}
             />
           </div>
           <label class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-semibold text-slate-700">
             <input
               type="checkbox"
-              class="h-4 w-4 rounded border-slate-300 text-violet-600 focus:ring-violet-500"
+              class="h-4 w-4 rounded border-transparent text-primary focus:ring-ring"
               checked={achievementForm.revocable}
               on:change={(event) => onFormChange({ revocable: event.target.checked })}
             />
@@ -286,21 +290,26 @@
           </label>
 
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
-            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Preview de imagen</p>
+            <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Vista previa de imagen</p>
             <div class="mt-3 flex items-center gap-4">
-              {#key previewImageUrl}
-                <img
-                  src={previewImageUrl}
-                  alt="Preview del achievement"
-                  class="h-20 w-20 rounded-2xl border border-slate-200 bg-white object-cover"
-                  on:error={(event) => {
-                    event.currentTarget.src = `${apiBaseUrl}/images/node-badge.svg`;
-                  }}
-                />
-              {/key}
+              {#if previewImageUrl && imageIsValid}
+                {#key previewImageUrl}
+                  <img
+                    src={previewImageUrl}
+                    alt="Vista previa del logro"
+                    class="h-20 w-20 rounded-2xl border border-slate-200 bg-white object-cover"
+                  />
+                {/key}
+              {:else}
+                <div class="grid h-20 w-20 place-items-center rounded-2xl bg-white text-center text-xs font-semibold text-slate-400">
+                  Sin vista previa
+                </div>
+              {/if}
               <div>
-                <p class="font-semibold text-slate-950">{achievementForm.name || "Nombre del achievement"}</p>
-                <p class="break-all text-sm text-slate-500">{previewImageUrl}</p>
+                <p class="font-semibold text-slate-950">{achievementForm.name || "NOMBRE DEL LOGRO"}</p>
+                <p class="break-all text-sm text-slate-500">
+                  {previewImageUrl || "Agrega una URL de imagen para verla aquí."}
+                </p>
                 <p class="mt-1 text-xs text-slate-500">
                   {achievementForm.revocable ? "Revocable" : "No revocable"}
                   · {validityOptions.find((option) => option.value === achievementForm.validityPreset)?.label || "1 año"}
@@ -312,12 +321,12 @@
           <div class="flex justify-end gap-2 md:col-span-2">
             {#if !formIsValid}
               <p class="mr-auto self-center text-xs font-semibold text-slate-500">
-                Completa todos los campos correctamente para crear el achievement.
+                Completa todos los campos correctamente para crear el logro.
               </p>
             {/if}
             <Button type="button" variant="outline" on:click={closeDialog}>Cancelar</Button>
             <Button type="submit" disabled={saving || !formIsValid}>
-              {saving ? "Guardando..." : editingAchievementId ? "Guardar cambios" : "Crear achievement"}
+              {saving ? "Guardando..." : editingAchievementId ? "Guardar cambios" : "Crear logro"}
             </Button>
           </div>
         </form>

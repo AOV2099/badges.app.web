@@ -1,14 +1,10 @@
 <script>
-  import { cn } from "$lib/utils";
+  import { Card as ShadcnCard } from "$lib/components/ui/card/index.js";
+  import { cn } from "$lib/utils.js";
 
   export let className = "";
 </script>
 
-<section
-  class={cn(
-    "rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-[var(--card-foreground)] shadow-sm shadow-slate-950/[0.02]",
-    className
-  )}
->
+<ShadcnCard class={cn("rounded-2xl border-transparent bg-card p-6 shadow-lg shadow-primary/5", className)} {...$$restProps}>
   <slot />
-</section>
+</ShadcnCard>

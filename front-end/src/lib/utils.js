@@ -1,9 +1,55 @@
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
 export function cn(...classes) {
-  return classes.filter(Boolean).join(" ");
+  return twMerge(clsx(classes));
+}
+
+export function flyAndScale(node, params = {}) {
+  const {
+    y = -8,
+    x = 0,
+    start = 0.96,
+    duration = 150
+  } = params;
+  const style = getComputedStyle(node);
+  const transform = style.transform === "none" ? "" : style.transform;
+
+  return {
+    duration,
+    css: (t) => {
+      const scale = start + (1 - start) * t;
+      return `
+        transform: ${transform} translate(${(1 - t) * x}px, ${(1 - t) * y}px) scale(${scale});
+        opacity: ${t};
+      `;
+    }
+  };
 }
 
 export function getSlugFromUrl(url) {
   return String(url || "").split("/").filter(Boolean).pop() || "";
+}
+
+export function toDisplayUppercase(value) {
+  return String(value || "").toLocaleUpperCase("es-MX");
+}
+
+export function slugify(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+export function buildAchievementId(courseName, career = "ICO", date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+
+  return [slugify(courseName), slugify(career), `${year}${month}`].filter(Boolean).join("-");
 }
 
 export function formatDate(value) {
@@ -13,6 +59,20 @@ export function formatDate(value) {
     dateStyle: "medium",
     timeStyle: "short"
   }).format(new Date(value));
+}
+
+export function formatStatus(value) {
+  const labels = {
+    active: "Activa",
+    revoked: "Revocada",
+    pending_review: "En revisión",
+    pending: "Pendiente",
+    preview: "Vista previa",
+    issued: "Emitida",
+    rejected_batch: "Rechazadas"
+  };
+
+  return labels[value] || value || "Sin estado";
 }
 
 export function truncate(value, size = 12) {
@@ -36,8 +96,8 @@ export function buildLinkedInCertificationUrl(badge, credentialUrl = getPublicBa
   const issueDate = issuedAt ? new Date(issuedAt) : new Date();
   const params = new URLSearchParams({
     startTask: "CERTIFICATION_NAME",
-    name: achievement.name || "Open Badge",
-    organizationName: issuer.name || "Open Badges Issuer",
+    name: achievement.name || "Insignia verificable",
+    organizationName: issuer.name || "Emisor de insignias",
     issueYear: String(issueDate.getFullYear()),
     issueMonth: String(issueDate.getMonth() + 1),
     certId: badge?.id || "",
