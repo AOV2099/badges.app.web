@@ -67,8 +67,9 @@
 
     loginState = "loading";
 
-    const state = crypto.randomUUID();
-    localStorage.setItem("badges-google-oauth-state", state);
+    const nonce = crypto.randomUUID();
+    const state = btoa(JSON.stringify({ nonce, returnTo: window.location.origin }));
+    localStorage.setItem("badges-google-oauth-state", nonce);
     window.location.href = `${apiBaseUrl}/auth/google/start?state=${encodeURIComponent(state)}`;
   }
 
@@ -81,8 +82,9 @@
     const returnedState = url.searchParams.get("state") || "";
     const savedState = localStorage.getItem("badges-google-oauth-state") || "";
     localStorage.removeItem("badges-google-oauth-state");
+    const parsedState = parseGoogleOAuthState(returnedState);
 
-    if (!savedState || returnedState !== savedState) {
+    if (!savedState || parsedState.nonce !== savedState) {
       loginState = "error";
       onSubmit({ accessGranted: false, error: "No se pudo validar la respuesta de Google. Intenta de nuevo." });
       return;
@@ -101,6 +103,14 @@
     loginState = "error";
     onSubmit({ accessGranted: false, error: url.searchParams.get("reason") || "Google no permitió iniciar sesión." });
   });
+
+  function parseGoogleOAuthState(state) {
+    try {
+      return JSON.parse(atob(state));
+    } catch {
+      return {};
+    }
+  }
 </script>
 
 <main class="min-h-screen overflow-hidden bg-[var(--background)] text-[var(--foreground)]">

@@ -82,7 +82,7 @@
     divisions: "Divisiones"
   };
 
-  let apiBaseUrl = defaultApiBaseUrl;
+  let apiBaseUrl;
   let achievements = [];
   let badges = [];
   let loading = false;

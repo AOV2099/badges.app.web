@@ -7,7 +7,7 @@ Se reforzó el backend demostrativo de Open Badges 3.0 para que arranque correct
 ## Cambios realizados
 
 - Se habilitó ESM con `"type": "module"` para que `npm start` ejecute los `import`.
-- Se agregó configuración por variables de entorno para `PORT`, `BASE_URL`, `CORS_ORIGIN`, `BADGE_VALIDITY_DAYS`, `ISSUER_ID`, `BADGES_DATA_PATH` y `BADGE_PRIVATE_KEY_PATH`.
+- Se agregó configuración por variables de entorno para `PORT`, `GOOGLE_REDIRECT_URI`, `BADGE_VALIDITY_DAYS`, `ISSUER_ID`, `BADGES_DATA_PATH` y `BADGE_PRIVATE_KEY_PATH`.
 - Se corrigió la ruta de persistencia para guardar emisiones dentro de `back-end/data/issued-badges.json`.
 - Se agregaron listados públicos: `GET /achievements` y `GET /badges`.
 - Se agregó CRUD de achievements: `POST /achievements`, `PUT /achievements/:id` y `DELETE /achievements/:id`.

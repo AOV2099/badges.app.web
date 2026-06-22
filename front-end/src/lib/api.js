@@ -1,4 +1,4 @@
-export { defaultApiBaseUrl } from "$lib/stores/config";
+export const defaultApiBaseUrl = "/api";
 
 export async function apiRequest(baseUrl, path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, {

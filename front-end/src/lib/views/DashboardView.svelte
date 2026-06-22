@@ -23,7 +23,7 @@
     { value: "90", label: "Últimos 90 días" }
   ];
   const chartHeight = 288;
-  const chartPadding = { top: 16, right: 16, bottom: 30, left: 20 };
+  const chartPadding = { top: 16, right: 0, bottom: 24, left: 24 };
   const chartStroke = "#0b4f9f";
 
   let selectedPeriod = "30";
@@ -32,8 +32,6 @@
   $: selectedPeriodDays = Number(selectedPeriod);
   $: activitySeries = buildActivitySeries(badges, selectedPeriodDays);
   $: recentActivityTotal = activitySeries.reduce((total, item) => total + item.count, 0);
-  $: chartMaxValue = Math.max(...activitySeries.map((item) => item.count), 1);
-  $: chartDomainMax = chartMaxValue;
 
   function buildActivitySeries(sourceBadges, periodDays) {
     const today = new Date();
@@ -122,7 +120,7 @@
       </div>
     </div>
 
-    <div class="relative mt-6 overflow-hidden rounded-3xl border border-border bg-white p-4 shadow-inner shadow-primary/5">
+    <div class="relative mt-6 overflow-visible rounded-3xl border border-border bg-white p-4 shadow-inner shadow-primary/5">
       <div class="pointer-events-none absolute inset-x-4 top-4 h-20 rounded-full bg-primary/5 blur-2xl"></div>
       <div class="relative w-full" style:height={`${chartHeight}px`}>
         <Chart
@@ -131,17 +129,17 @@
           x="date"
           xScale={scaleUtc()}
           y="count"
-          yDomain={[0, chartDomainMax]}
-          yNice={false}
+          yDomain={[0, null]}
+          yNice
           tooltip={{ mode: "bisect-x", radius: 48 }}
         >
           <Svg>
             <Axis
               placement="left"
               grid={{ class: "stroke-[#c7d9ee] stroke-[1.2] opacity-80" }}
-              ticks={Math.min(chartDomainMax + 1, 5)}
-              format={(value) => `${value}`}
-              classes={{ tick: "stroke-border", tickLabel: "fill-muted-foreground text-[11px] font-semibold" }}
+              rule
+              //azis con valores enteros
+              format={(value) => (Number.isInteger(value) ? value : "")}
             />
             <Axis
               placement="bottom"
@@ -152,7 +150,7 @@
             />
 
             <ChartClipPath>
-              <Spline y="count" curve={curveMonotoneX}  stroke={chartStroke} strokeWidth={3} />
+              <Spline y="count" curve={curveMonotoneX} fill="none" stroke={chartStroke} strokeWidth={3} />
             </ChartClipPath>
           </Svg>
 

@@ -1,47 +1,52 @@
-# Despliegue con Docker Compose / Portainer
+# Ejecución local (sin Docker)
 
-Este proyecto ahora puede correr en local o en contenedores.
+## Requisitos
 
-## Servicios
+- Node.js 20+
+- PostgreSQL 16+
 
-- `backend`: API Express de Open Badges.
-- `frontend`: app Svelte compilada y servida con Nginx.
-- `badges_data`: volumen persistente para achievements y badges emitidas.
+## Variables de entorno
 
-## Puertos por defecto
-
-- Frontend: `http://localhost:8080`
-- Backend: `http://localhost:3001`
-
-## Ejecutar con Docker Compose
-
-```bash
-docker compose up --build
-```
-
-## Usar en Portainer
-
-1. Crea un nuevo Stack.
-2. Pega el contenido de `docker-compose.yml`.
-3. Configura las variables de entorno recomendadas:
+Define en `.env` al menos:
 
 ```txt
-FRONTEND_PORT=8080
-BACKEND_PORT=3001
-BACKEND_PUBLIC_URL=http://TU_HOST:3001
-FRONTEND_API_BASE_URL=/api
-CORS_ORIGIN=*
-BADGE_VALIDITY_DAYS=365
-BADGE_PRIVATE_KEY_PATH=/app/data/signing-private-key.pem
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=open_badges
+DB_USER=badges
+DB_PASSWORD=badges
+GOOGLE_REDIRECT_URI=http://localhost:3001/api/auth_google_callback.php
 ```
 
-4. Despliega el stack.
-5. Abre el frontend en `http://TU_HOST:8080`.
+`GOOGLE_REDIRECT_URI` es la URL pública del callback de Google y de ahí se deriva el origen usado por los IDs Open Badges.
 
-## Notas importantes
+## Backend
 
-- Si expones el backend con otro dominio o proxy, actualiza `BACKEND_PUBLIC_URL`.
-- `FRONTEND_API_BASE_URL=/api` usa el proxy interno de Nginx hacia `backend:3001`.
-- El volumen `badges_data` conserva badges y achievements aunque recrees contenedores.
-- El backend firma nuevas badges con `RS256` y guarda la llave privada RSA en `BADGE_PRIVATE_KEY_PATH`.
-- Conserva el volumen `badges_data`; si se pierde la llave privada, las badges emitidas antes ya no podrán verificarse con la misma firma.
+1. Instala dependencias en [back-end/package.json](back-end/package.json):
+
+```bash
+cd back-end
+npm install
+```
+
+2. Inicia el backend:
+
+```bash
+npm run dev:badges
+```
+
+Backend disponible en `http://localhost:3001`.
+
+## Frontend
+
+1. Instala dependencias y arranca Vite:
+
+```bash
+cd front-end
+npm install
+npm run dev
+```
+
+Frontend disponible en `http://localhost:5173`.
+
+El frontend consume `/api`; Vite lo proxifica al backend local en `http://localhost:3001`.
