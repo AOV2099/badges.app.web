@@ -1,18 +1,4 @@
-function resolveFallbackApiBaseUrl() {
-  const hostname = globalThis.window?.location?.hostname || "";
-  const isLocalhost = ["localhost", "127.0.0.1", "::1"].includes(hostname);
-
-  if (isLocalhost) {
-    return "http://localhost:3001";
-  }
-
-  return "http://132.248.44.4:3009";
-}
-
-export const defaultApiBaseUrl =
-  globalThis.window?.BADGES_CONFIG?.API_BASE_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  resolveFallbackApiBaseUrl();
+export { defaultApiBaseUrl } from "$lib/stores/config";
 
 export async function apiRequest(baseUrl, path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
