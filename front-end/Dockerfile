@@ -2,8 +2,6 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
-ARG VITE_API_BASE_URL=/api
-
 COPY package*.json ./
 RUN npm ci
 
@@ -17,7 +15,5 @@ COPY docker-entrypoint.sh /docker-entrypoint.d/40-badges-runtime-config.sh
 COPY --from=build /app/dist /usr/share/nginx/html
 
 RUN chmod +x /docker-entrypoint.d/40-badges-runtime-config.sh
-
-ENV API_BASE_URL=/api
 
 EXPOSE 80

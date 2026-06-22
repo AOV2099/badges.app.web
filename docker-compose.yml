@@ -31,8 +31,6 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/auth/google/callback}
       GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-}
-      BADGES_DATA_PATH: /app/data/issued-badges.json
-      ACHIEVEMENTS_DATA_PATH: /app/data/achievements.json
       BADGE_PRIVATE_KEY_PATH: /app/data/signing-private-key.pem
     volumes:
       - badges_data:/app/data
@@ -45,11 +43,7 @@ services:
   frontend:
     build:
       context: ./front-end
-      args:
-        VITE_API_BASE_URL: /api
     container_name: badges-frontend
-    environment:
-      API_BASE_URL: ${FRONTEND_API_BASE_URL:-/api}
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     depends_on:

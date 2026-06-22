@@ -9,8 +9,6 @@ COPY src ./src
 COPY public ./public
 
 ENV NODE_ENV=production
-ENV PORT=3001
-ENV BASE_URL=http://localhost:3001
 
 EXPOSE 3001
 
