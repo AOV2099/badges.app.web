@@ -50,3 +50,14 @@ npm run dev
 Frontend disponible en `http://localhost:5173`.
 
 El frontend consume `/api`; Vite lo proxifica al backend local en `http://localhost:3001`.
+
+## Docker opcional
+
+Construye las imágenes desde la raíz del repo:
+
+```bash
+docker build -t badges-backend ./back-end
+docker build -t badges-frontend ./front-end
+```
+
+El backend expone `3001`; el frontend expone `80` y proxifica `/api` hacia el host `badges-backend:3001` dentro de la red Docker.
