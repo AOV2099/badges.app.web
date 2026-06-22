@@ -8,8 +8,7 @@ RUN npm ci --omit=dev
 
 FROM node:22-alpine
 ENV NODE_ENV=production \
-    PORT=3001 \
-    BADGE_PRIVATE_KEY_PATH=/app/data/signing-private-key.pem
+  PORT=3001
 
 WORKDIR /app
 
