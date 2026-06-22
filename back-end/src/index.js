@@ -39,9 +39,9 @@ import { verifyIssuedBadge } from "./verifier.js";
 
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
+const BASE_URL = process.env.BACKEND_PUBLIC_URL || process.env.BASE_URL || `http://localhost:${PORT}`;
 const DEFAULT_VALIDITY_DAYS = Number(process.env.BADGE_VALIDITY_DAYS || 365);
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+const FRONTEND_URL = String(process.env.FRONTEND_URL || "").trim();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || "";
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || `${BASE_URL}/api/auth_google_callback.php`;
@@ -65,8 +65,22 @@ function getGoogleOAuthConfigError() {
   return null;
 }
 
-function buildFrontendLoginUrl(params = {}) {
-  const url = new URL("/login", FRONTEND_URL);
+function getRequestOrigin(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "").split(",")[0].trim();
+  const protocol = forwardedProto || req.protocol || "http";
+  const host = forwardedHost || req.get("host") || "";
+
+  if (!host) {
+    return null;
+  }
+
+  return `${protocol}://${host}`;
+}
+
+function buildFrontendLoginUrl(req, params = {}) {
+  const frontendBaseUrl = FRONTEND_URL || getRequestOrigin(req) || BASE_URL;
+  const url = new URL("/login", frontendBaseUrl);
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") {
       url.searchParams.set(key, value);
@@ -809,23 +823,23 @@ async function handleGoogleCallback(req, res) {
   const state = String(req.query.state || "").trim();
 
   if (configError) {
-    return res.redirect(buildFrontendLoginUrl({ googleAuth: "error", reason: configError, state }));
+    return res.redirect(buildFrontendLoginUrl(req, { googleAuth: "error", reason: configError, state }));
   }
 
   if (req.query.error) {
-    return res.redirect(buildFrontendLoginUrl({ googleAuth: "error", reason: String(req.query.error), state }));
+    return res.redirect(buildFrontendLoginUrl(req, { googleAuth: "error", reason: String(req.query.error), state }));
   }
 
   const code = String(req.query.code || "").trim();
   if (!code) {
-    return res.redirect(buildFrontendLoginUrl({ googleAuth: "error", reason: "Missing Google authorization code", state }));
+    return res.redirect(buildFrontendLoginUrl(req, { googleAuth: "error", reason: "Missing Google authorization code", state }));
   }
 
   try {
     const tokenResponse = await exchangeGoogleCode(code);
     const profile = await getGoogleUserInfo(tokenResponse.access_token);
 
-    res.redirect(buildFrontendLoginUrl({
+    res.redirect(buildFrontendLoginUrl(req, {
       googleAuth: "success",
       state,
       email: profile.email,
@@ -834,7 +848,7 @@ async function handleGoogleCallback(req, res) {
     }));
   } catch (error) {
     console.error("Google OAuth callback failed:", error);
-    res.redirect(buildFrontendLoginUrl({ googleAuth: "error", reason: error.message, state }));
+    res.redirect(buildFrontendLoginUrl(req, { googleAuth: "error", reason: error.message, state }));
   }
 }
 

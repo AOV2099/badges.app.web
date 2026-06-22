@@ -18,10 +18,9 @@ services:
     container_name: badges-backend
     environment:
       PORT: 3001
-      BASE_URL: ${BACKEND_PUBLIC_URL:-http://localhost:3001}
+      BACKEND_PUBLIC_URL: ${BACKEND_PUBLIC_URL:-http://localhost:3001}
       CORS_ORIGIN: ${CORS_ORIGIN:-*}
       BADGE_VALIDITY_DAYS: ${BADGE_VALIDITY_DAYS:-365}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-open_badges}
@@ -29,7 +28,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-badges}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/auth/google/callback}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/auth_google_callback.php}
       GOOGLE_ALLOWED_DOMAIN: ${GOOGLE_ALLOWED_DOMAIN:-}
       BADGE_PRIVATE_KEY_PATH: /app/data/signing-private-key.pem
     volumes:

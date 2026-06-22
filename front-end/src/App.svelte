@@ -178,11 +178,8 @@
   );
 
   onMount(() => {
-    const savedApiBaseUrl = localStorage.getItem("badges-api-base-url");
     const savedUser = localStorage.getItem(authStorageKey) || localStorage.getItem(legacyGoogleStorageKey);
-    apiBaseUrl = savedApiBaseUrl === "http://localhost:3000"
-      ? defaultApiBaseUrl
-      : savedApiBaseUrl || defaultApiBaseUrl;
+    apiBaseUrl = defaultApiBaseUrl;
 
     if (savedUser) {
       try {
