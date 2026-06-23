@@ -264,8 +264,8 @@
         <h3 class="text-lg font-bold text-slate-950">Usuarios</h3>
         <p class="text-sm text-slate-500">
           {canManageUsers
-            ? `Gestión de usuarios (sin super usuario): nombre, correo, división y habilitación. Mostrando ${filteredUsers.length} de ${users.length}.`
-            : `Visualización de usuarios de tu misma división. Mostrando ${filteredUsers.length} de ${users.length}.`}
+            ? `Gestión de usuarios. Mostrando ${filteredUsers.length} de ${users.length}.`
+            : `Visualización de usuarios. Mostrando ${filteredUsers.length} de ${users.length}.`}
         </p>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
